@@ -1,3 +1,20 @@
+/*
+* This file is part of the Autonomous Android Vehicle (AAV) application.
+*
+* AAV is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* AAV is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with AAV.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package ioio.aav;
 
 import ioio.lib.api.AnalogInput;
@@ -31,17 +48,13 @@ import android.view.WindowManager;
 
 public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	private static final String _TAG = "AAVActivity";
+	
+	static final double MIN_CONTOUR_AREA = 100;
 
 	private Mat _rgbaImage;
 
 	private JavaCameraView _openCvCameraView;
 	private MainController _mainController;
-
-	// private boolean isTransmitting = false;
-	// private boolean isIOIOConnected = false;
-	// public static SensorFusion mSensorFusion = null;
-
-	static final double MIN_CONTOUR_AREA = 100;
 	
 	volatile double _currentContourArea = 7;	
 	volatile Point _currentCenterPoint = new Point(-1, -1);
@@ -79,20 +92,13 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		// requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-		// Get a reference to the sensor service
-		// SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
 		setContentView(R.layout.main);
 
 		_openCvCameraView = (JavaCameraView) findViewById(R.id.iron_track_activity_surface_view);
 		_openCvCameraView.setCvCameraViewListener(this);
 
 		_openCvCameraView.setMaxFrameSize(176, 144);
-
-		// mSensorFusion = new SensorFusion(sensorManager);
-
 		_mainController = new MainController();
-
 		_countOutOfFrame = _pwmThresholdCounter = 0;
 	}
 
@@ -101,27 +107,18 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		super.onPause();
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
-
-		// Unregister sensor listeners to prevent the activity from draining the device's battery.
-		// mSensorFusion.unregisterListeners();
 	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
 		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_7, this, mLoaderCallback);
-
-		// Restore the sensor listeners when user resumes the application.
-		// mSensorFusion.initListeners();
 	}
 
 	public void onDestroy() {
 		super.onDestroy();
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
-
-		// unregister sensor listeners to prevent the activity from draining the device's battery.
-		// mSensorFusion.unregisterListeners();
 	}
 
 	public void onCameraViewStarted(int width, int height) {
@@ -205,8 +202,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		// IRs
 		private AnalogInput _frontLeftIR, _frontRightIR, _rightSideIR, _leftSideIR;
 		
-		private static final int BUFFER_SIZE = 256;  //Always set the buffer to something bigger that sample size otherwise you'd lose data.
-		
 		boolean isBacking = false;
 
 		/**
@@ -234,25 +229,10 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 				_frontRightIR = ioio_.openAnalogInput(43); // A/D 3 shield
 				_rightSideIR = ioio_.openAnalogInput(42); // A/D 4 shield
 				
-				
-//				_frontLeftIR.setBuffer(BUFFER_SIZE);
-//				_frontRightIR.setBuffer(BUFFER_SIZE);
-//				_leftSideIR.setBuffer(BUFFER_SIZE);
-//				_rightSideIR.setBuffer(BUFFER_SIZE);
-
-				
-				// TO TEST WITH IOIO ONLY - REMOVE ONCE EVERYTHING WORKS
-//				_frontLeftIR = ioio_.openAnalogInput(42);
-//				_frontRightIR = ioio_.openAnalogInput(41);
-//				_leftSideIR = ioio_.openAnalogInput(43);
-//				_rightSideIR = ioio_.openAnalogInput(44);
-				
-				
 				_pwmPan.setPulseWidth((int) _pwmValues[0]);
 				_pwmTilt.setPulseWidth((int) _pwmValues[1]);
 				_pwmMotor.setPulseWidth((int) _pwmValues[2]);
 				_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
-//				_mainController.irSensors.setIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
 			} catch (ConnectionLostException e) {
 				Log.e(_TAG, e.getMessage());
 				throw e;
@@ -273,11 +253,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			try {
 				synchronized (_mainController) {
 					
-				if (_currentContourArea > MIN_CONTOUR_AREA) {
-//					isBacking = _mainController.irSensors.isBacking(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
-					
+				if (_currentContourArea > MIN_CONTOUR_AREA) {					
 					_mainController.calculatePanTiltPWM(_screenCenterCoordinates, _currentCenterPoint);
-					
 					_mainController.irSensors.updateIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
 					if (_pwmThresholdCounter > 8) {
 						_mainController.calculateMotorPWM(_currentContourArea);
@@ -288,11 +265,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 //						if (_mainController.irSensors.checkIRSensors())
 //							_pwmThresholdCounter = 10;
 				    }
-					
-//					if (_frontLeftIR.available() == BUFFER_SIZE) {
-//						_mainController.irSensors.setIRSensorsVoltage(getAverageVoltage(_frontLeftIR), getAverageVoltage(_frontRightIR), getAverageVoltage(_leftSideIR), getAverageVoltage(_rightSideIR));
-//					}
-					
+										
 //					_mainController.irSensors.setIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
 					
 //					if (_mainController.irSensors.isBacking()) {
@@ -317,16 +290,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 				_pwmPan.setPulseWidth((int) _pwmValues[0]);
 				_pwmTilt.setPulseWidth((int) _pwmValues[1]);
-				_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
-
-				// for going between backwards and forwards
-				// WARNING: MINIMIZE GOING FROM FULL SPEED FORWARD TO FULL SPEED BACKWARDS
-				// DOING SO CAN DAMAGE THE GEARS
-//				if ((int) _pwmValues[2] < MainController.STOP_MOTOR_PWM)
-//					_pwmMotor.setPulseWidth(MainController.STOP_MOTOR_PWM);
-
-//				Log.e("_pwmValues[2]", String.valueOf(_pwmValues[2]));
-				
+				_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);				
 				_pwmMotor.setPulseWidth((int) _pwmValues[2]);
 				}
 				Thread.sleep(8);
@@ -342,16 +306,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_pwmTilt.close();
 			_pwmMotor.close();
 			_pwmFrontWheels.close();
-		}
-		
-		private float getAverageVoltage(AnalogInput analogInput) throws InterruptedException, ConnectionLostException {
-			float average = 0.0f;
-			for (int i=0; i < 25; i++) {
-				 average += analogInput.getVoltageBuffered();
-//				 Log.e("analogInput.getVoltageBuffered()", String.valueOf(analogInput.getVoltageBuffered()));
-			 }
-//			 Log.e("average/25", String.valueOf(average/25));
-			 return average/25;
 		}
 	}
 

@@ -1,3 +1,20 @@
+/*
+* This file is part of the Autonomous Android Vehicle (AAV) application.
+*
+* AAV is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* AAV is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with AAV.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package ioio.aav;
 
 import org.opencv.core.Point;
@@ -23,18 +40,12 @@ public class MainController {
 	
 	public static final int RANGE_WHEELS_PWM = LEFT_FULL_TURN_WHEELS_PWM - CENTER_FRONT_WHEELS_PWM;
 
-	// extra motor push when the wheels are far off
-//	public static final int EXTRA_TURN_PWM = 50;
-
 	public static final int MOTOR_FORWARD_PWM = 1578; 
 	public static final int MOTOR_REVERSE_PWM = 1422;
 	public static final int MOTOR_NEUTRAL_PWM = 1500;
 	
 	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1800;
 	public static final int MIN_NEUTRAL_CONTOUR_AREA = 600;
-
-//	public static final int AREA_THRESHOLD = 2500;
-//	public static final int NOT_BALL = 100;
 
 	public double _pwmPan;
 	public double _pwmTilt;
@@ -89,29 +100,6 @@ public class MainController {
 			_wasMoving = true;			
 		}
 		_lastMotorPWM = _pwmMotor;
-		
-//		Log.e("currentContourArea", String.valueOf(currentContourArea));
-//		Log.e("_motorIncrement", String.valueOf(_motorIncrement));
-//		Log.e("error", String.valueOf(error));
-//		Log.e("_pwmMotor", String.valueOf(_pwmMotor));
-		
-		
-		
-//		if (currentContourArea > AREA_THRESHOLD) {
-//			_pwmMotor = (1 - (AREA_THRESHOLD / currentContourArea)) * (MOTOR_REVERSE_PWM - MOTOR_REVERSE_STOP_PWM) + MOTOR_REVERSE_STOP_PWM;
-//			
-//			
-//		} else if (currentContourArea < AREA_THRESHOLD && (currentContourArea > NOT_BALL)) {
-//			_pwmMotor = (1 - (currentContourArea / AREA_THRESHOLD)) * (MOTOR_FORWARD_PWM - MOTOR_FORWARD_STOP_PWM) + MOTOR_FORWARD_STOP_PWM;
-//			
-////			Log.e("_pwmMotor", String.valueOf(_pwmMotor));
-//			
-//		} else if (currentContourArea < NOT_BALL) {
-//			_pwmMotor = MOTOR_NEUTRAL_PWM;
-//		}
-
-		// extra motor push if car needs to turn
-		// _pwmMotor = constrain(_pwmMotor + Math.abs((_pwmPan - MID_PAN_PWM) / (MAX_PAN_PWM - MID_PAN_PWM) * EXTRA_TURN_PWM), MOTOR_REVERSE_PWM, MOTOR_FORWARD_PWM);
 
 		return _pwmMotor;
 
@@ -192,24 +180,20 @@ public class MainController {
 		public boolean checkIRSensors() {
 			if (_frontLeftIRVoltage > 1.1) {
 				_pwmFrontWheels = RIGHT_FULL_TURN_WHEELS_PWM;
-//				_pwmMotor = MOTOR_NEUTRAL_PWM;
 //				Log.e("<<<<<<<<< _frontLeftIRVoltage", String.valueOf(_frontLeftIRVoltage));
 				return false;
 			} else if (_frontRightIRVoltage > 1.1) {
 //				_pwmFrontWheels = constrain(_pwmFrontWheels + (_frontRightIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 				_pwmFrontWheels = LEFT_FULL_TURN_WHEELS_PWM;
-//				_pwmMotor = MOTOR_NEUTRAL_PWM;
 //				Log.e("_frontRightIRVoltage >>>>>>>>>", String.valueOf(_frontRightIRVoltage));
 				return false;
 			} else if (_leftSideIRVoltage > 1.5) {
 				_pwmFrontWheels = constrain(_pwmFrontWheels - (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
-//				_pwmMotor = MOTOR_NEUTRAL_PWM;
 //				Log.e(" < ^^^^^^^^_leftSideIRVoltage", String.valueOf(_leftSideIRVoltage));
 				Log.e(" < ^^^^^^^^_pwmFrontWheels", String.valueOf(_pwmFrontWheels));
 				return false;
 			} else if (_rightSideIRVoltage > 1.5) {
 				_pwmFrontWheels = constrain(_pwmFrontWheels + (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
-//				_pwmMotor = MOTOR_NEUTRAL_PWM;
 //				Log.e("_rightSideIRVoltage ^^^^^^^ >", String.valueOf(_rightSideIRVoltage));
 				Log.e("_pwmFrontWheels ^^^^^^^ >", String.valueOf(_pwmFrontWheels));
 				return false;

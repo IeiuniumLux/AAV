@@ -54,13 +54,12 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	private Mat _rgbaImage;
 
 	private JavaCameraView _openCvCameraView;
-	private MainController _mainController;
+	private ActuatorController _mainController;
 	
 	volatile double _currentContourArea = 7;	
 	volatile Point _currentCenterPoint = new Point(-1, -1);
 	Point _screenCenterCoordinates = new Point(-1, -1);
 	int _countOutOfFrame = 0;
-	int _pwmThresholdCounter = 0;
 
 	Mat _HsvMat;
 	Mat _processedMat;
@@ -98,8 +97,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		_openCvCameraView.setCvCameraViewListener(this);
 
 		_openCvCameraView.setMaxFrameSize(176, 144);
-		_mainController = new MainController();
-		_countOutOfFrame = _pwmThresholdCounter = 0;
+		_mainController = new ActuatorController();
+		_countOutOfFrame = 0;
 	}
 
 	@Override
@@ -203,6 +202,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		private AnalogInput _frontLeftIR, _frontRightIR, _rightSideIR, _leftSideIR;
 		
 		boolean isBacking = false;
+		
+		int _pwmThresholdCounter = 0;
 
 		/**
 		 * Called every time a connection with IOIO has been established. Typically used to open pins.
@@ -254,10 +255,10 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 				synchronized (_mainController) {
 					
 				if (_currentContourArea > MIN_CONTOUR_AREA) {					
-					_mainController.calculatePanTiltPWM(_screenCenterCoordinates, _currentCenterPoint);
+					_mainController.updatePanTiltPWM(_screenCenterCoordinates, _currentCenterPoint);
 					_mainController.irSensors.updateIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
 					if (_pwmThresholdCounter > 8) {
-						_mainController.calculateMotorPWM(_currentContourArea);
+						_mainController.updateMotorPWM(_currentContourArea);
 						_pwmThresholdCounter = 0;
 					} else {
 						_pwmThresholdCounter++;

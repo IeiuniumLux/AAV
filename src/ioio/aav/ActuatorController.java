@@ -21,7 +21,7 @@ import org.opencv.core.Point;
 
 import android.util.Log;
 
-public class MainController {
+public class ActuatorController {
 
 	public static final int MIN_PAN_PWM = 600;
 	public static final int MAX_PAN_PWM = 2500;
@@ -29,7 +29,7 @@ public class MainController {
 	public static final int MAX_TILT_PWM = 2250;
 
 	public static final int MID_PAN_PWM = (MAX_PAN_PWM + MIN_PAN_PWM) / 2;
-	public static final int MID_TILT_PWM = (MAX_TILT_PWM + MIN_TILT_PWM) / 2;
+	public static final int MID_TILT_PWM = 1775;//(MAX_TILT_PWM + MIN_TILT_PWM) / 2;
 	
 	public static final int RANGE_PAN_PWM = MAX_PAN_PWM - MID_PAN_PWM;
 	
@@ -40,8 +40,8 @@ public class MainController {
 	
 	public static final int RANGE_WHEELS_PWM = LEFT_FULL_TURN_WHEELS_PWM - CENTER_FRONT_WHEELS_PWM;
 
-	public static final int MOTOR_FORWARD_PWM = 1578; 
-	public static final int MOTOR_REVERSE_PWM = 1422;
+	public static final int MOTOR_FORWARD_PWM = 1575; 
+	public static final int MOTOR_REVERSE_PWM = 1425;
 	public static final int MOTOR_NEUTRAL_PWM = 1500;
 	
 	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1800;
@@ -56,10 +56,12 @@ public class MainController {
 	
 	double _lastPanPWMValue;
 	double _lastMotorPWM;
-	int pulseCounter = 0;
+	int _pulseCounter = 0;
+	boolean _wasMoving = false;
+	
+	Point _lastCenterPoint = new Point(0, 0);
 
-	public MainController() {
-
+	public ActuatorController() {
 		// set the pulse width to be exactly the middle
 		_lastPanPWMValue = _pwmPan = MID_PAN_PWM;
 		_pwmTilt = MID_TILT_PWM;
@@ -73,18 +75,16 @@ public class MainController {
 		return new double[] {_pwmPan, _pwmTilt, _pwmMotor, _pwmFrontWheels};
 	}
 	
-	boolean _wasMoving = false;
-	
-	public double calculateMotorPWM(double currentContourArea) throws InterruptedException {
-		calculateWheelsPWM();
+	public void updateMotorPWM(double currentContourArea) throws InterruptedException {
+		updateWheelsPWM();
 		if (currentContourArea > MIN_NEUTRAL_CONTOUR_AREA && currentContourArea < MAX_NEUTRAL_CONTOUR_AREA) {
 			// The ESC is intelligent enough to see this as braking.
 			if (_lastMotorPWM == MOTOR_FORWARD_PWM && _wasMoving) {
-				_pwmMotor = MOTOR_REVERSE_PWM - 100;
+				_pwmMotor = MOTOR_REVERSE_PWM - 200;
 			} else if (_lastMotorPWM == MOTOR_REVERSE_PWM && _wasMoving) {
 				_pwmMotor = MOTOR_FORWARD_PWM;
 			} else {
-				_pwmMotor = MOTOR_NEUTRAL_PWM;
+					_pwmMotor = MOTOR_NEUTRAL_PWM;
 			}
 			_wasMoving = false;
 		} else if (currentContourArea < MIN_NEUTRAL_CONTOUR_AREA) {
@@ -92,20 +92,21 @@ public class MainController {
 			_wasMoving = true;
 		} else if (currentContourArea > MAX_NEUTRAL_CONTOUR_AREA) {
 			if (_lastMotorPWM == MOTOR_NEUTRAL_PWM && !_wasMoving) {
-				pulseCounter = 4;
+				_pulseCounter = 2;
 			}
-			_pwmMotor = (pulseCounter == 4 ) ?  MOTOR_REVERSE_PWM - 25 : (pulseCounter == 3 ) ? MOTOR_NEUTRAL_PWM : (pulseCounter == 2 ) ? MOTOR_REVERSE_PWM - 25 : MOTOR_REVERSE_PWM;
-			if (pulseCounter > 0)
-				pulseCounter--;
+			_pwmMotor = reverseSequence(_pulseCounter);
+			if (_pulseCounter > 0)
+				_pulseCounter--;
 			_wasMoving = true;			
 		}
 		_lastMotorPWM = _pwmMotor;
-
-		return _pwmMotor;
-
+	}
+	
+	private int reverseSequence(int pulseCounter) {
+		return (pulseCounter == 2) ?  MOTOR_REVERSE_PWM - 200 : (pulseCounter == 1) ? MOTOR_NEUTRAL_PWM : MOTOR_REVERSE_PWM;
 	}
 
-	private void calculateWheelsPWM() {
+	private void updateWheelsPWM() {
 		if (irSensors.checkIRSensors())
 			_pwmFrontWheels = constrain(1.3 * ((MID_PAN_PWM - _pwmPan) / RANGE_PAN_PWM) * RANGE_WHEELS_PWM + CENTER_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 	}
@@ -229,8 +230,7 @@ public class MainController {
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------------------------
-
-	Point _lastCenterPoint = new Point(0, 0);
+	
 	Point _increment = new Point(0, 0);
 	double _targetTiltPosition = 0.0;
 
@@ -238,7 +238,7 @@ public class MainController {
 
 	static final int MID_SCREEN_BOUNDARY = 15;
 
-	public double[] calculatePanTiltPWM(Point screenCenterPoint, Point currentCenterPoint) {
+	public void updatePanTiltPWM(Point screenCenterPoint, Point currentCenterPoint) {
 		Point derivativeTerm = new Point(0, 0);
 
 		// --- Set up objects to calculate the error and derivative error
@@ -293,7 +293,5 @@ public class MainController {
 
 			_lastCenterPoint.y = currentCenterPoint.y;
 		}
-
-		return new double[] {_pwmPan, _pwmTilt};
 	}
 }

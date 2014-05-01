@@ -5,10 +5,9 @@
     android:layout_height="match_parent" >
 
     <org.opencv.android.JavaCameraView
+        android:id="@+id/aav_activity_surface_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/iron_track_activity_surface_view"
-        opencv:show_fps="true"
-        opencv:camera_id="any" />
-
+        opencv:camera_id="any"
+        opencv:show_fps="true" />
 </LinearLayout>

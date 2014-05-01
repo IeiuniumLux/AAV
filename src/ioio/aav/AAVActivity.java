@@ -42,7 +42,14 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.WindowManager;
 
@@ -61,9 +68,15 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	Point _screenCenterCoordinates = new Point(-1, -1);
 	int _countOutOfFrame = 0;
 
-	Mat _HsvMat;
+	Mat _hsvMat;
 	Mat _processedMat;
 	Mat _dilatedMat;
+	Scalar _lowerThreshold;
+	Scalar _upperThreshold;
+	final List<MatOfPoint> _contours = new ArrayList<MatOfPoint>();
+		
+	public SensorFusion _sensorFusion = null;
+	
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -71,7 +84,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			switch (status) {
 			case LoaderCallbackInterface.SUCCESS: {
 				_openCvCameraView.enableView();
-				_HsvMat = new Mat();
+				_hsvMat = new Mat();
 				_processedMat = new Mat();
 				_dilatedMat = new Mat();
 			}
@@ -93,17 +106,43 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 		setContentView(R.layout.main);
 
-		_openCvCameraView = (JavaCameraView) findViewById(R.id.iron_track_activity_surface_view);
+		_openCvCameraView = (JavaCameraView) findViewById(R.id.aav_activity_surface_view);
 		_openCvCameraView.setCvCameraViewListener(this);
 
 		_openCvCameraView.setMaxFrameSize(176, 144);
 		_mainController = new ActuatorController();
 		_countOutOfFrame = 0;
+		
+		_lowerThreshold = new Scalar(60, 100, 30);  // Green
+		_upperThreshold = new Scalar(130, 255, 255);
+		
+//		_lowerThreshold = new Scalar(1, 100, 100);  // Orange
+//		_upperThreshold = new Scalar(25, 255, 255);
+		
+		// Get a reference to the sensor service
+		SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+				
+		_sensorFusion = new SensorFusion(sensorManager);
+		
+		boolean recognizerIntent = isSpeechAvailable(this);
+        if (!recognizerIntent)
+        {
+            Log.e("speechNotAvailable()", "NO");
+        }
+        boolean direct = SpeechRecognizer.isRecognitionAvailable(this);
+        if (!direct)
+        {
+        	Log.e("speechNotAvailable()", "NO EITHER");
+        }
 	}
 
 	@Override
 	public void onPause() {
 		super.onPause();
+		
+		// Unregister sensor listeners to prevent the activity from draining the device's battery.
+		_sensorFusion.unregisterListeners();
+				
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
 	}
@@ -111,11 +150,19 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	@Override
 	public void onResume() {
 		super.onResume();
+		
+		// Restore the sensor listeners when user resumes the application.
+		_sensorFusion.initListeners();
+		
 		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_7, this, mLoaderCallback);
 	}
 
 	public void onDestroy() {
 		super.onDestroy();
+		
+		// Unregister sensor listeners to prevent the activity from draining the device's battery.
+		_sensorFusion.unregisterListeners();
+				
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
 	}
@@ -141,45 +188,79 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			double contourArea;
 
 			// In contrast to the C++ interface, Android API captures images in the RGBA format.
-			Imgproc.cvtColor(_rgbaImage, _HsvMat, Imgproc.COLOR_RGB2HSV_FULL);
-			// Imgproc.cvtColor(_rgbaImage, _HsvMat, Imgproc.COLOR_RGB2YCrCb);
+			// Also, in HSV space, only the hue determines which color it is. Saturation determines 
+			// how 'white' the color is, and Value determines how 'dark' the color is.
+			Imgproc.cvtColor(_rgbaImage, _hsvMat, Imgproc.COLOR_RGB2HSV_FULL);
+			
+//			int ch[] = {0, 0};
+//            MatOfInt fromTo = new MatOfInt(ch);
+//			Mat hue = new Mat(_rgbaImage.size(), CvType.CV_8U);
+//			List<Mat> hsvlist = new ArrayList<Mat>();
+//            List<Mat> huelist = new ArrayList<Mat>();
+//            hsvlist.add(0, _hsvMat);
+//            huelist.add(0, hue);
+//			Core.mixChannels(hsvlist, huelist, fromTo);
+//			hue = huelist.get(0);
+//			Mat dst = new Mat();
+//			Imgproc.threshold(hue, dst, 0, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
+//			Log.e("dst", String.valueOf(dst.total()));
+//			
+//			List<Mat> chan = new ArrayList<Mat>();
+//			Core.split( _hsvMat, chan);
+//			Mat H = _hsvMat.row(0);
+//			Mat binary = new Mat();
+//			Imgproc.threshold(H, binary, 1 /*ignored for otsu*/, 255, Imgproc.THRESH_OTSU);
 
-			Core.inRange(_HsvMat, new Scalar(60, 100, 30), new Scalar(130, 255, 255), _processedMat); // Green ball
 
-			Imgproc.dilate(_processedMat, _dilatedMat, new Mat());
-			final List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-			Imgproc.findContours(_dilatedMat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+			Core.inRange(_hsvMat, _lowerThreshold, _upperThreshold, _processedMat);
+
+//			Imgproc.dilate(_processedMat, _dilatedMat, new Mat());
+			Imgproc.erode(_processedMat, _dilatedMat, new Mat());
+			Imgproc.findContours(_dilatedMat, _contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 			MatOfPoint2f points = new MatOfPoint2f();
 			_currentContourArea = 7;
-			for (int i = 0, n = contours.size(); i < n; i++) {
-				contourArea = Imgproc.contourArea(contours.get(i));
+			for (int i = 0, n = _contours.size(); i < n; i++) {
+				contourArea = Imgproc.contourArea(_contours.get(i));
 				if (contourArea > _currentContourArea) {
 					_currentContourArea = contourArea;
-					//
-					// contours.get(x) is a single MatOfPoint, but to use minEnclosingCircle we need to pass a MatOfPoint2f so we need to do a conversion
-					//
-					contours.get(i).convertTo(points, CvType.CV_32FC2);
+					_contours.get(i).convertTo(points, CvType.CV_32FC2); // contours.get(x) is a single MatOfPoint, but to use minEnclosingCircle we need to pass a MatOfPoint2f so we need to do a conversion
 				}
 			}
 			if (!points.empty() && _currentContourArea > MIN_CONTOUR_AREA) {
 				Imgproc.minEnclosingCircle(points, _currentCenterPoint, null);
 //				Core.circle(_rgbaImage, _currentCenterPoint, 3, new Scalar(255, 0, 0), Core.FILLED);
-				// Core.circle(_rgbaImage, _currentCenterPoint, (int) Math.round(Math.sqrt(_currentContourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);//Core.FILLED);
+				 Core.circle(_rgbaImage, _currentCenterPoint, (int) Math.round(Math.sqrt(_currentContourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);//Core.FILLED);
 			}
+			_contours.clear();
+			
+			
+			
+//			double area = 1;
+//			Mat circles = new Mat();
+//			Imgproc.GaussianBlur(_processedMat, _processedMat, new Size(9, 9), 2, 2); 
+//			Imgproc.HoughCircles(_processedMat, circles, Imgproc.CV_HOUGH_GRADIENT, 2, _processedMat.rows() / 4, 100, 50, 10, 100);
+//			
+//			//  Draw the circles detected 
+//			int rows = circles.rows(); 
+//			int elemSize = (int) circles.elemSize(); // Returns 12 (3 * 4bytes in a float) 
+//			float[] circleData = new float[rows * elemSize / 4];
+//			
+//			if (circleData.length > 0) { 
+//				circles.get(0, 0, circleData); // Points to the first element and reads the whole thing into circleData 
+//				int radius = 0; for (int i = 0; i < circleData.length; i = i + 3) { 
+//					_currentCenterPoint.x = circleData[i]; 
+//					_currentCenterPoint.y = circleData[i + 1]; 
+//					radius = (int) Math.round(circleData[2]); 
+//					area = Math.PI * (radius * radius); 
+//					if (area > _currentContourArea) { 
+//						_currentContourArea = area; 
+//					} 
+//				} 
+//				if (_currentContourArea > MIN_CONTOUR_AREA) 
+//					Core.circle(_rgbaImage, _currentCenterPoint, radius, new Scalar(255, 0, 0), 3); 
+//			}
 
-			/*
-			 * double area = 1; Mat circles = new Mat(); Imgproc.GaussianBlur(_processedMat, _processedMat, new Size(9, 9), 2, 2); Imgproc.HoughCircles(_processedMat, circles,
-			 * Imgproc.CV_HOUGH_GRADIENT, 2, _processedMat.rows() / 4, 100, 50, 10, 100);
-			 * 
-			 * /// Draw the circles detected int rows = circles.rows(); int elemSize = (int) circles.elemSize(); // Returns 12 (3 * 4bytes in a float) float[] circleData = new float[rows * elemSize /
-			 * 4];
-			 * 
-			 * if (circleData.length > 0) { circles.get(0, 0, circleData); // Points to the first element and reads the whole thing into circleData int radius = 0; for (int i = 0; i <
-			 * circleData.length; i = i + 3) { _currentCenterPoint.x = circleData[i]; _currentCenterPoint.y = circleData[i + 1]; radius = (int) Math.round(circleData[2]); area = Math.PI * (radius *
-			 * radius); if (area > _currentContourArea) { _currentContourArea = area; } } if (_currentContourArea > MIN_CONTOUR_AREA) Core.circle(_rgbaImage, _currentCenterPoint, radius, new Scalar(255, 0, 0), 3); }
-			 */
-
-			contours.clear();
+			
 
 		}
 		return _rgbaImage;
@@ -253,10 +334,14 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 			try {
 				synchronized (_mainController) {
+										
+				if (_currentContourArea > MIN_CONTOUR_AREA) {
 					
-				if (_currentContourArea > MIN_CONTOUR_AREA) {					
 					_mainController.updatePanTiltPWM(_screenCenterCoordinates, _currentCenterPoint);
 					_mainController.irSensors.updateIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
+					
+//					if (!_mainController.irSensors.isBacking(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage(), _currentContourArea)) {
+						
 					if (_pwmThresholdCounter > 8) {
 						_mainController.updateMotorPWM(_currentContourArea);
 						_pwmThresholdCounter = 0;
@@ -266,6 +351,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 //						if (_mainController.irSensors.checkIRSensors())
 //							_pwmThresholdCounter = 10;
 				    }
+//					}
 										
 //					_mainController.irSensors.setIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _leftSideIR.getVoltage(), _rightSideIR.getVoltage());
 					
@@ -278,6 +364,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 //						_mainController.calculateMotorPWM(_currentContourArea);
 //						_mainController.irSensors.checkIRSensors();
 //					}
+					
 					_countOutOfFrame = 0;
 				} else {
 					_countOutOfFrame++;
@@ -319,4 +406,25 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	protected IOIOLooper createIOIOLooper() {
 		return new Looper();
 	}
+	
+	/**
+     * checks if the device supports speech recognition 
+     * at all
+     */
+    public boolean isSpeechAvailable(Context context)
+    {
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> activities = pm.queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0);
+
+        boolean available = true;
+        if (activities.size() == 0) {
+            available = false;
+        }
+        return available;
+        //also works, but it is checking something slightly different
+        //it checks for the recognizer service. so we use the above check
+        //instead since it directly answers the question of whether or not
+        //the app can service the intent the app will send
+//      return SpeechRecognizer.isRecognitionAvailable(context);
+    }
 }

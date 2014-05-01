@@ -19,8 +19,6 @@ package ioio.aav;
 
 import org.opencv.core.Point;
 
-import android.util.Log;
-
 public class ActuatorController {
 
 	public static final int MIN_PAN_PWM = 600;
@@ -29,7 +27,7 @@ public class ActuatorController {
 	public static final int MAX_TILT_PWM = 2250;
 
 	public static final int MID_PAN_PWM = (MAX_PAN_PWM + MIN_PAN_PWM) / 2;
-	public static final int MID_TILT_PWM = 1775;//(MAX_TILT_PWM + MIN_TILT_PWM) / 2;
+	public static final int MID_TILT_PWM = 1800;//(MAX_TILT_PWM + MIN_TILT_PWM) / 2;
 	
 	public static final int RANGE_PAN_PWM = MAX_PAN_PWM - MID_PAN_PWM;
 	
@@ -40,12 +38,12 @@ public class ActuatorController {
 	
 	public static final int RANGE_WHEELS_PWM = LEFT_FULL_TURN_WHEELS_PWM - CENTER_FRONT_WHEELS_PWM;
 
-	public static final int MOTOR_FORWARD_PWM = 1575; 
-	public static final int MOTOR_REVERSE_PWM = 1425;
+	public static final int MOTOR_FORWARD_PWM = 1578; 
+	public static final int MOTOR_REVERSE_PWM = 1420;
 	public static final int MOTOR_NEUTRAL_PWM = 1500;
 	
-	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1800;
-	public static final int MIN_NEUTRAL_CONTOUR_AREA = 600;
+	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1700;
+	public static final int MIN_NEUTRAL_CONTOUR_AREA = 700;
 
 	public double _pwmPan;
 	public double _pwmTilt;
@@ -103,7 +101,7 @@ public class ActuatorController {
 	}
 	
 	private int reverseSequence(int pulseCounter) {
-		return (pulseCounter == 2) ?  MOTOR_REVERSE_PWM - 200 : (pulseCounter == 1) ? MOTOR_NEUTRAL_PWM : MOTOR_REVERSE_PWM;
+		return (pulseCounter == 2) ?  MOTOR_REVERSE_PWM - 100 : (pulseCounter == 1) ? MOTOR_NEUTRAL_PWM + 1 : MOTOR_REVERSE_PWM;
 	}
 
 	private void updateWheelsPWM() {
@@ -124,79 +122,40 @@ public class ActuatorController {
 
 	
 	public class IRSensors {
-		boolean _reverseWheels = false;
-		boolean _doBacking = false;
 		double _frontLeftIRVoltage, _frontRightIRVoltage, _leftSideIRVoltage, _rightSideIRVoltage;
-	
-		public boolean isBacking(float frontLeftIRVoltage, float frontRightIRVoltage, float leftSideIRVoltage, float rightSideIRVoltage) {
+		
+		public synchronized boolean isBacking(float frontLeftIRVoltage, float frontRightIRVoltage, float leftSideIRVoltage, float rightSideIRVoltage, double currentContourArea) {
 			_frontLeftIRVoltage = frontLeftIRVoltage;
 			_frontRightIRVoltage = frontRightIRVoltage;
 			_leftSideIRVoltage = leftSideIRVoltage;
 			_rightSideIRVoltage = rightSideIRVoltage;
 			
-			if (_frontLeftIRVoltage > 2.0 || _frontRightIRVoltage > 2.0) {
-				_doBacking = true;
-				if (!_reverseWheels) {
-					_pwmMotor = MOTOR_REVERSE_PWM - 150;
-					_reverseWheels = true;
-					
-					Log.e("MOTOR_NEUTRAL_PWM _doBacking", String.valueOf(_pwmMotor));
-				} else {
-					_pwmMotor = MOTOR_NEUTRAL_PWM;
-					
-					Log.e("MOTOR_REVERSE_PWM _doBacking", String.valueOf(_pwmMotor));
-				}
-			} else {
-				_doBacking = false;
-				_reverseWheels = false;
+			if (currentContourArea > MAX_NEUTRAL_CONTOUR_AREA) {
+				_wasMoving = false;
+				return false;
 			}
 			
-			
-//			if (_frontLeftIRVoltage > 2.0 && _frontRightIRVoltage > 2.0) {
-//				_doBacking = true;
-//				if (!_reverseWheels) {
-//					double diff = _pwmFrontWheels - MID_PAN_PWM; // pos if bigger, neg if less
-//					_pwmFrontWheels = MID_PAN_PWM - diff; // reverses the wheels
-//					_reverseWheels = true;
-//					
-//					if (_frontLeftIRVoltage > 1.1)
-//						Log.e("<------ _frontLeftIRVoltage", String.valueOf(_frontLeftIRVoltage));
-//					else if (_frontRightIRVoltage > 1.1)
-//						Log.e("_frontRightIRVoltage ----->", String.valueOf(_frontRightIRVoltage));
-//				}
-//			}
-//			if (_doBacking) {
-//				_pwmMotor = MOTOR_REVERSE_PWM; // check
-//
-//				if (_frontLeftIRVoltage < 1.0 || _frontRightIRVoltage < 1.0) {
-//					_doBacking = false;
-//					_reverseWheels = false;
-//				}
-//			}
-
-			return _doBacking;
+			if (_frontLeftIRVoltage > 1.1 && _frontRightIRVoltage > 1.1) {
+				_lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
+				return true;
+			}
+			return false;
 		}
 		
 		
 		public boolean checkIRSensors() {
 			if (_frontLeftIRVoltage > 1.1) {
 				_pwmFrontWheels = RIGHT_FULL_TURN_WHEELS_PWM;
-//				Log.e("<<<<<<<<< _frontLeftIRVoltage", String.valueOf(_frontLeftIRVoltage));
 				return false;
 			} else if (_frontRightIRVoltage > 1.1) {
-//				_pwmFrontWheels = constrain(_pwmFrontWheels + (_frontRightIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 				_pwmFrontWheels = LEFT_FULL_TURN_WHEELS_PWM;
-//				Log.e("_frontRightIRVoltage >>>>>>>>>", String.valueOf(_frontRightIRVoltage));
 				return false;
-			} else if (_leftSideIRVoltage > 1.5) {
+			} else 
+				if (_leftSideIRVoltage > 1.5) {
 				_pwmFrontWheels = constrain(_pwmFrontWheels - (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
-//				Log.e(" < ^^^^^^^^_leftSideIRVoltage", String.valueOf(_leftSideIRVoltage));
-				Log.e(" < ^^^^^^^^_pwmFrontWheels", String.valueOf(_pwmFrontWheels));
 				return false;
 			} else if (_rightSideIRVoltage > 1.5) {
 				_pwmFrontWheels = constrain(_pwmFrontWheels + (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
-//				Log.e("_rightSideIRVoltage ^^^^^^^ >", String.valueOf(_rightSideIRVoltage));
-				Log.e("_pwmFrontWheels ^^^^^^^ >", String.valueOf(_pwmFrontWheels));
 				return false;
 			}
 			return true;

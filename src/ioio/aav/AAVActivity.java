@@ -42,15 +42,14 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
+import android.content.SharedPreferences;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.WindowManager;
 
 public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
@@ -76,8 +75,12 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	final List<MatOfPoint> _contours = new ArrayList<MatOfPoint>();
 		
 	public SensorFusion _sensorFusion = null;
-	
 
+	SharedPreferences sharedPreferences;
+	GestureDetector gestureDetector;
+	static int trackingColor = 0;
+
+	
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
 		public void onManagerConnected(int status) {
@@ -113,29 +116,75 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		_mainController = new ActuatorController();
 		_countOutOfFrame = 0;
 		
-		_lowerThreshold = new Scalar(60, 100, 30);  // Green
-		_upperThreshold = new Scalar(130, 255, 255);
+		PreferenceManager.setDefaultValues(this, R.xml.settings, false);
+		sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+		trackingColor = Integer.parseInt(sharedPreferences.getString(getString(R.string.color_key), "0"));
 		
-//		_lowerThreshold = new Scalar(1, 100, 100);  // Orange
-//		_upperThreshold = new Scalar(25, 255, 255);
+		if (trackingColor == 0) {
+			_lowerThreshold = new Scalar(60, 100, 30);  // Green
+			_upperThreshold = new Scalar(130, 255, 255);
+		} else if (trackingColor == 1) {
+			_lowerThreshold = new Scalar(150, 100, 90);  // Purple
+			_upperThreshold = new Scalar(255, 255, 290);
+		} else if (trackingColor == 1) {
+			_lowerThreshold = new Scalar(1, 100, 100);  // Orange
+			_upperThreshold = new Scalar(30, 255, 255);	
+		}
+		
 		
 		// Get a reference to the sensor service
 		SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 				
 		_sensorFusion = new SensorFusion(sensorManager);
+
+		gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+			@Override
+		    public void onLongPress(MotionEvent e) {
+		    	startActivityForResult(new Intent(getApplicationContext(), SettingsActivity.class), 0);
+		    }
+		});
+	}
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+	    return gestureDetector.onTouchEvent(event);
+	};
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		trackingColor = Integer.parseInt(sharedPreferences.getString(getString(R.string.color_key), "0"));
 		
-		boolean recognizerIntent = isSpeechAvailable(this);
-        if (!recognizerIntent)
-        {
-            Log.e("speechNotAvailable()", "NO");
-        }
-        boolean direct = SpeechRecognizer.isRecognitionAvailable(this);
-        if (!direct)
-        {
-        	Log.e("speechNotAvailable()", "NO EITHER");
+		switch (trackingColor) {
+		case 0:	// Green
+			_lowerThreshold.set(new double[] { 60, 100, 30, 0 });
+			_upperThreshold.set(new double[] { 130, 255, 255, 0 });
+			break;
+		case 1:	// Purple
+			_lowerThreshold.set(new double[] { 180, 90, 90, 0 });
+			_upperThreshold.set(new double[] { 255, 255, 255, 0 });
+			break;
+		case 2:	// Orange
+			_lowerThreshold.set(new double[] { 1, 100, 100, 0 });
+			_upperThreshold.set(new double[] { 30, 255, 255, 0 });
+			break;
+		default:
+			_lowerThreshold.set(new double[] { 60, 100, 30, 0 });
+			_upperThreshold.set(new double[] { 130, 255, 255, 0 });
+			break;
         }
 	}
 
+	@Override
+	public void onResume() {
+		super.onResume();
+		
+		// Restore the sensor listeners when user resumes the application.
+		_sensorFusion.initListeners();
+		
+		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_7, this, mLoaderCallback);
+	}
+	
 	@Override
 	public void onPause() {
 		super.onPause();
@@ -148,15 +197,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	}
 
 	@Override
-	public void onResume() {
-		super.onResume();
-		
-		// Restore the sensor listeners when user resumes the application.
-		_sensorFusion.initListeners();
-		
-		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_7, this, mLoaderCallback);
-	}
-
 	public void onDestroy() {
 		super.onDestroy();
 		
@@ -167,12 +207,14 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_openCvCameraView.disableView();
 	}
 
+	@Override
 	public void onCameraViewStarted(int width, int height) {
 		_rgbaImage = new Mat(height, width, CvType.CV_8UC4);
 		_screenCenterCoordinates.x = _rgbaImage.size().width / 2;
 		_screenCenterCoordinates.y = _rgbaImage.size().height / 2;
 	}
 
+	@Override
 	public void onCameraViewStopped() {
 		_rgbaImage.release();
 		_currentCenterPoint.x = -1;
@@ -180,6 +222,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		_mainController.reset();
 	}
 
+	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		synchronized (inputFrame) {
 
@@ -406,25 +449,4 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	protected IOIOLooper createIOIOLooper() {
 		return new Looper();
 	}
-	
-	/**
-     * checks if the device supports speech recognition 
-     * at all
-     */
-    public boolean isSpeechAvailable(Context context)
-    {
-        PackageManager pm = context.getPackageManager();
-        List<ResolveInfo> activities = pm.queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0);
-
-        boolean available = true;
-        if (activities.size() == 0) {
-            available = false;
-        }
-        return available;
-        //also works, but it is checking something slightly different
-        //it checks for the recognizer service. so we use the above check
-        //instead since it directly answers the question of whether or not
-        //the app can service the intent the app will send
-//      return SpeechRecognizer.isRecognitionAvailable(context);
-    }
 }

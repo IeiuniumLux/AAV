@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory
+        android:key="@string/settings_key"
+        android:title="@string/settings" >
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/color_entries"
+            android:entryValues="@array/color_values"
+            android:key="@string/color_key"
+            android:title="@string/tracking_color" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

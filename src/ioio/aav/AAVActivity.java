@@ -117,11 +117,11 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_lowerThreshold = new Scalar(60, 100, 30);  // Green
 			_upperThreshold = new Scalar(130, 255, 255);
 		} else if (trackingColor == 1) {
-			_lowerThreshold = new Scalar(160, 90, 90);  // Purple
+			_lowerThreshold = new Scalar(160, 50, 90);  // Purple
 			_upperThreshold = new Scalar(255, 255, 255);
 		} else if (trackingColor == 2) {
-			_lowerThreshold = new Scalar(0, 90, 90);  // Orange
-			_upperThreshold = new Scalar(100, 255, 255);	
+			_lowerThreshold = new Scalar(1, 50, 150);  // Orange
+			_upperThreshold = new Scalar(60, 255, 255);	
 		}
 		
 		_openCvCameraView = (JavaCameraView) findViewById(R.id.aav_activity_surface_view);
@@ -160,12 +160,12 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_upperThreshold.set(new double[] { 130, 255, 255, 0 });
 			break;
 		case 1:	// Purple
-			_lowerThreshold.set(new double[] { 160, 90, 90 });
+			_lowerThreshold.set(new double[] { 160, 50, 90 });
 			_upperThreshold.set(new double[] { 255, 255, 255, 0 });
 			break;
 		case 2:	// Orange
-			_lowerThreshold.set(new double[] { 0, 90, 90, 0 });
-			_upperThreshold.set(new double[] { 100, 255, 255, 0 });
+			_lowerThreshold.set(new double[] { 1, 50, 150 });
+			_upperThreshold.set(new double[] { 60, 255, 255, 0 });
 			break;
 		default:
 			_lowerThreshold.set(new double[] { 60, 100, 30, 0 });

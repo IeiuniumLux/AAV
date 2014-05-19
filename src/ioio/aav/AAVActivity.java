@@ -74,7 +74,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	Scalar _upperThreshold;
 	final List<MatOfPoint> _contours = new ArrayList<MatOfPoint>();
 		
-	public SensorFusion _sensorFusion = null;
+//	public SensorFusion _sensorFusion = null;
 
 	SharedPreferences sharedPreferences;
 	GestureDetector gestureDetector;
@@ -133,8 +133,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		
 		
 		// Get a reference to the sensor service
-		SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-		_sensorFusion = new SensorFusion(sensorManager);
+//		SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+//		_sensorFusion = new SensorFusion(sensorManager);
 
 		gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
 			@Override
@@ -179,7 +179,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		super.onResume();
 		
 //		 Restore the sensor listeners when user resumes the application.
-		_sensorFusion.initListeners();
+//		_sensorFusion.initListeners();
 		
 		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_7, this, mLoaderCallback);
 	}
@@ -189,7 +189,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		super.onPause();
 		
 //		 Unregister sensor listeners to prevent the activity from draining the device's battery.
-		_sensorFusion.unregisterListeners();
+//		_sensorFusion.unregisterListeners();
 				
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
@@ -200,7 +200,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		super.onDestroy();
 		
 		// Unregister sensor listeners to prevent the activity from draining the device's battery.
-		_sensorFusion.unregisterListeners();
+//		_sensorFusion.unregisterListeners();
 				
 		if (_openCvCameraView != null)
 			_openCvCameraView.disableView();
@@ -265,7 +265,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 				contourArea = Imgproc.contourArea(_contours.get(i));
 				if (contourArea > _currentContourArea) {
 					_currentContourArea = contourArea;
-					_contours.get(i).convertTo(points, CvType.CV_32FC2); // contours.get(x) is a single MatOfPoint, but to use minEnclosingCircle we need to pass a MatOfPoint2f so we need to do a conversion
+//					_contours.get(i).convertTo(points, CvType.CV_32FC2); // contours.get(x) is a single MatOfPoint, but to use minEnclosingCircle we need to pass a MatOfPoint2f so we need to do a conversion
 				}
 			}
 			if (!points.empty() && _currentContourArea > MIN_CONTOUR_AREA) {

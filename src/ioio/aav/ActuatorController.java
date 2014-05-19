@@ -42,8 +42,8 @@ public class ActuatorController {
 	public static final int MOTOR_REVERSE_PWM = 1420;
 	public static final int MOTOR_NEUTRAL_PWM = 1500;
 	
-	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1700;
-	public static final int MIN_NEUTRAL_CONTOUR_AREA = 700;
+	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1800;
+	public static final int MIN_NEUTRAL_CONTOUR_AREA = 600;
 
 	public double _pwmPan;
 	public double _pwmTilt;

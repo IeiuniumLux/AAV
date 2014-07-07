@@ -44,7 +44,6 @@ import org.opencv.imgproc.Imgproc;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;

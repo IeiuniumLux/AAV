@@ -357,6 +357,7 @@ public class SensorFusion implements SensorEventListener {
 	}
 
 	class calculateFusedOrientationTask extends TimerTask {
+		@Override
 		public void run() {
 			float oneMinusCoeff = 1.0f - FILTER_COEFFICIENT;
 

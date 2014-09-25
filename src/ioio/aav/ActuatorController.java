@@ -45,59 +45,59 @@ public class ActuatorController {
 	public static final int MAX_NEUTRAL_CONTOUR_AREA = 1800;
 	public static final int MIN_NEUTRAL_CONTOUR_AREA = 600;
 
-	public double _pwmPan;
-	public double _pwmTilt;
-	public double _pwmMotor;
-	public double _pwmFrontWheels;
+	public double pwm_pan;
+	public double pwm_tilt;
+	public double pwm_motor;
+	public double pwm_front_wheels;
 
-	IRSensors irSensors;
+	IRSensors ir_sensors;
 	
-	double _lastPanPWMValue;
-	double _lastMotorPWM;
-	int _pulseCounter = 0;
-	boolean _wasMoving = false;
+	double last_pan_pwm;
+	double last_motor_pwm;
+	int pulse_counter = 0;
+	boolean was_moving = false;
 	
-	Point _lastCenterPoint = new Point(0, 0);
+	Point last_center = new Point(0, 0);
 
 	public ActuatorController() {
 		// set the pulse width to be exactly the middle
-		_lastPanPWMValue = _pwmPan = MID_PAN_PWM;
-		_pwmTilt = MID_TILT_PWM;
-		_lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
-		_pwmFrontWheels = CENTER_FRONT_WHEELS_PWM;
+		last_pan_pwm = pwm_pan = MID_PAN_PWM;
+		pwm_tilt = MID_TILT_PWM;
+		last_motor_pwm = pwm_motor = MOTOR_NEUTRAL_PWM;
+		pwm_front_wheels = CENTER_FRONT_WHEELS_PWM;
 
-		irSensors = new IRSensors();
+		ir_sensors = new IRSensors();
 	}	
 	
 	public synchronized double[] getPWMValues() {
-		return new double[] {_pwmPan, _pwmTilt, _pwmMotor, _pwmFrontWheels};
+		return new double[] {pwm_pan, pwm_tilt, pwm_motor, pwm_front_wheels};
 	}
 	
 	public void updateMotorPWM(double currentContourArea) throws InterruptedException {
 		updateWheelsPWM();
 		if (currentContourArea > MIN_NEUTRAL_CONTOUR_AREA && currentContourArea < MAX_NEUTRAL_CONTOUR_AREA) {
 			// The ESC is intelligent enough to see this as braking.
-			if (_lastMotorPWM == MOTOR_FORWARD_PWM && _wasMoving) {
-				_pwmMotor = MOTOR_REVERSE_PWM - 200;
-			} else if (_lastMotorPWM == MOTOR_REVERSE_PWM && _wasMoving) {
-				_pwmMotor = MOTOR_FORWARD_PWM;
+			if (last_motor_pwm == MOTOR_FORWARD_PWM && was_moving) {
+				pwm_motor = MOTOR_REVERSE_PWM - 200;
+			} else if (last_motor_pwm == MOTOR_REVERSE_PWM && was_moving) {
+				pwm_motor = MOTOR_FORWARD_PWM;
 			} else {
-					_pwmMotor = MOTOR_NEUTRAL_PWM;
+					pwm_motor = MOTOR_NEUTRAL_PWM;
 			}
-			_wasMoving = false;
+			was_moving = false;
 		} else if (currentContourArea < MIN_NEUTRAL_CONTOUR_AREA) {
-			_pwmMotor = MOTOR_FORWARD_PWM;
-			_wasMoving = true;
+			pwm_motor = MOTOR_FORWARD_PWM;
+			was_moving = true;
 		} else if (currentContourArea > MAX_NEUTRAL_CONTOUR_AREA) {
-			if (_lastMotorPWM == MOTOR_NEUTRAL_PWM && !_wasMoving) {
-				_pulseCounter = 2;
+			if (last_motor_pwm == MOTOR_NEUTRAL_PWM && !was_moving) {
+				pulse_counter = 2;
 			}
-			_pwmMotor = reverseSequence(_pulseCounter);
-			if (_pulseCounter > 0)
-				_pulseCounter--;
-			_wasMoving = true;			
+			pwm_motor = reverseSequence(pulse_counter);
+			if (pulse_counter > 0)
+				pulse_counter--;
+			was_moving = true;			
 		}
-		_lastMotorPWM = _pwmMotor;
+		last_motor_pwm = pwm_motor;
 	}
 	
 	private int reverseSequence(int pulseCounter) {
@@ -105,8 +105,8 @@ public class ActuatorController {
 	}
 
 	private void updateWheelsPWM() {
-		if (irSensors.checkIRSensors())
-			_pwmFrontWheels = constrain(1.3 * ((MID_PAN_PWM - _pwmPan) / RANGE_PAN_PWM) * RANGE_WHEELS_PWM + CENTER_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+		if (ir_sensors.checkIRSensors())
+			pwm_front_wheels = constrain(1.3 * ((MID_PAN_PWM - pwm_pan) / RANGE_PAN_PWM) * RANGE_WHEELS_PWM + CENTER_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 	}
 
 	public double constrain(double input, double min, double max) {
@@ -114,10 +114,10 @@ public class ActuatorController {
 	}
 
 	public void reset() {
-		_lastPanPWMValue = _pwmPan = MID_PAN_PWM;
-		_pwmTilt = MID_TILT_PWM;
-		_lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
-		_pwmFrontWheels = CENTER_FRONT_WHEELS_PWM;
+		last_pan_pwm = pwm_pan = MID_PAN_PWM;
+		pwm_tilt = MID_TILT_PWM;
+		last_motor_pwm = pwm_motor = MOTOR_NEUTRAL_PWM;
+		pwm_front_wheels = CENTER_FRONT_WHEELS_PWM;
 	}
 
 	
@@ -131,12 +131,12 @@ public class ActuatorController {
 			_rightSideIRVoltage = rightSideIRVoltage;
 			
 			if (currentContourArea > MAX_NEUTRAL_CONTOUR_AREA) {
-				_wasMoving = false;
+				was_moving = false;
 				return false;
 			}
 			
 			if (_frontLeftIRVoltage > 1.1 && _frontRightIRVoltage > 1.1) {
-				_lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
+				last_motor_pwm = pwm_motor = MOTOR_NEUTRAL_PWM;
 				return true;
 			}
 			return false;
@@ -145,29 +145,56 @@ public class ActuatorController {
 		
 		public boolean checkIRSensors() {
 			if (_frontLeftIRVoltage > 1.1) {
-				_pwmFrontWheels = RIGHT_FULL_TURN_WHEELS_PWM;
+				pwm_front_wheels = RIGHT_FULL_TURN_WHEELS_PWM;
 				return false;
 			} else if (_frontRightIRVoltage > 1.1) {
-				_pwmFrontWheels = LEFT_FULL_TURN_WHEELS_PWM;
+				pwm_front_wheels = LEFT_FULL_TURN_WHEELS_PWM;
 				return false;
 			} else 
 				if (_leftSideIRVoltage > 1.5) {
-				_pwmFrontWheels = constrain(_pwmFrontWheels - (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+				pwm_front_wheels = constrain(pwm_front_wheels - (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 				return false;
 			} else if (_rightSideIRVoltage > 1.5) {
-				_pwmFrontWheels = constrain(_pwmFrontWheels + (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+				pwm_front_wheels = constrain(pwm_front_wheels + (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 				return false;
 			}
 			return true;
 		}
 
+//		int ir_task()
+//		{
+//		    extern LAYER ir;                       // C structure for task output
+//
+//		    int detect = read_ir_sensors();        // read sensors
+//		    if (detect == LEFT) {                  // if reflection on the left 
+//		            ir.cmd = HALF_SPEED;           // request slow down
+//		            ir.arg = RIGHT_TURN;           // and turn right
+//		            ir.flag = TRUE;                // signal arbitrator we want control
+//		    } else {
+//		        if (detect == RIGHT) {             // else if reflection on the right
+//		            ir.cmd = HALF_SPEED;           // request slow down
+//		            ir.arg = LEFT_TURN;            // and turn left
+//		            ir.flag = TRUE;                // tell arbitrator we want control
+//		        } else {
+//		            if (detect == BOTH) {          // else if reflection left and right
+//		                ir.cmd = ZERO_SPEED;       // request slow to zero
+//		                ir.arg = keep_turning();   // keep turning same direction
+//		                ir.flag = TRUE;            // signal arbitrator we want control
+//		            } else {
+//		               ir.flag = FALSE;            // else no detection, release control
+//		            }
+//		        }     
+//		    }
+//		}
+		
+		
 //		public void checkFrontIRSensors() {
 //			if (_frontLeftIRVoltage > 1.5) {
-//				_pwmFrontWheels = constrain(_pwmFrontWheels - (_frontLeftIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+//				pwm_front_wheels = constrain(pwm_front_wheels - (_frontLeftIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 //				Log.e("<****** _frontLeftIRVoltage", String.valueOf(_frontLeftIRVoltage));
 //			}
 //			if (_frontRightIRVoltage > 1.5) {
-//				_pwmFrontWheels = constrain(_pwmFrontWheels + (_frontRightIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+//				pwm_front_wheels = constrain(pwm_front_wheels + (_frontRightIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM, RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 //				
 //				Log.e("_frontRightIRVoltage *****>", String.valueOf(_frontRightIRVoltage));
 //			}
@@ -175,9 +202,9 @@ public class ActuatorController {
 //
 //		public void checkSideIRSensors() {
 //			if (_leftSideIRVoltage > 1.5)
-//				_pwmFrontWheels = constrain(_pwmFrontWheels - (0.33 * (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM), RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+//				pwm_front_wheels = constrain(pwm_front_wheels - (0.33 * (_leftSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM), RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 //			if (_rightSideIRVoltage > 1.5)
-//				_pwmFrontWheels = constrain(_pwmFrontWheels + (0.33 * (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM), RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
+//				pwm_front_wheels = constrain(pwm_front_wheels + (0.33 * (_rightSideIRVoltage / 2.0) * DIF_FRONT_WHEELS_PWM), RIGHT_FULL_TURN_WHEELS_PWM, LEFT_FULL_TURN_WHEELS_PWM);
 //		}
 
 		public void updateIRSensorsVoltage(float frontLeftIRVoltage, float frontRightIRVoltage, float leftSideIRVoltage, float rightSideIRVoltage) {
@@ -190,10 +217,10 @@ public class ActuatorController {
 
 	// ------------------------------------------------------------------------------------------------------------------------------------
 	
-	Point _increment = new Point(0, 0);
-	double _targetTiltPosition = 0.0;
+	Point increment = new Point(0, 0);
+	double target_tilt_position = 0.0;
 
-	static final double Kd_X = 0.8;// 003901;//018; // Derivative gain (Kd)
+	static final double kD_X = 0.8;// 003901;//018; // Derivative gain (Kd)
 
 	static final int MID_SCREEN_BOUNDARY = 15;
 
@@ -206,51 +233,51 @@ public class ActuatorController {
 
 		setpoint.x = (screenCenterPoint.x - currentCenterPoint.x) * 1.3;
 		if ((setpoint.x < -MID_SCREEN_BOUNDARY || setpoint.x > MID_SCREEN_BOUNDARY) && currentCenterPoint.x > 0) {
-			if (_lastCenterPoint.x != currentCenterPoint.x) {
-				_increment.x = setpoint.x * 0.2;
-				_lastPanPWMValue = _pwmPan;
+			if (last_center.x != currentCenterPoint.x) {
+				increment.x = setpoint.x * 0.2;
+				last_pan_pwm = pwm_pan;
 			}
-			error.x = (_pwmPan - _increment.x);
+			error.x = (pwm_pan - increment.x);
 
-			derivativeTerm.x = (_pwmPan - _lastPanPWMValue);
+			derivativeTerm.x = (pwm_pan - last_pan_pwm);
 
-			_lastPanPWMValue = _pwmPan;
+			last_pan_pwm = pwm_pan;
 
-			_pwmPan = error.x - constrain(Kd_X * derivativeTerm.x, -9, 9);
+			pwm_pan = error.x - constrain(kD_X * derivativeTerm.x, -9, 9);
 
-			_pwmPan = constrain(_pwmPan, MIN_PAN_PWM, MAX_PAN_PWM);
+			pwm_pan = constrain(pwm_pan, MIN_PAN_PWM, MAX_PAN_PWM);
 
-			_lastCenterPoint.x = currentCenterPoint.x;
+			last_center.x = currentCenterPoint.x;
 		}
 
 		setpoint.y = (currentCenterPoint.y - screenCenterPoint.y) * 0.8;
 		if ((setpoint.y < -MID_SCREEN_BOUNDARY || setpoint.y > MID_SCREEN_BOUNDARY) && currentCenterPoint.y > 0) {
-			if (_lastCenterPoint.y != currentCenterPoint.y) {
-				_targetTiltPosition = (_pwmTilt - setpoint.y);
-				_increment.y = setpoint.y * 0.41;
+			if (last_center.y != currentCenterPoint.y) {
+				target_tilt_position = (pwm_tilt - setpoint.y);
+				increment.y = setpoint.y * 0.41;
 			}
-			error.y = (_pwmTilt - _increment.y);
+			error.y = (pwm_tilt - increment.y);
 
-			if (_targetTiltPosition > MID_TILT_PWM && error.y > _targetTiltPosition && error.y > _pwmTilt) {
-				_pwmTilt = _targetTiltPosition;
-				_increment.y = 0;
+			if (target_tilt_position > MID_TILT_PWM && error.y > target_tilt_position && error.y > pwm_tilt) {
+				pwm_tilt = target_tilt_position;
+				increment.y = 0;
 			}
-			if (_targetTiltPosition > MID_TILT_PWM && error.y < _targetTiltPosition && error.y < _pwmTilt) {
-				_pwmTilt = _targetTiltPosition;
-				_increment.y = 0;
-			} else if (_targetTiltPosition < MID_TILT_PWM && error.y < _targetTiltPosition && error.y < _pwmTilt) {
-				_pwmTilt = _targetTiltPosition;
-				_increment.y = 0;
-			} else if (_targetTiltPosition < MID_TILT_PWM && error.y > _targetTiltPosition && error.y > _pwmTilt) {
-				_pwmTilt = _targetTiltPosition;
-				_increment.y = 0;
+			if (target_tilt_position > MID_TILT_PWM && error.y < target_tilt_position && error.y < pwm_tilt) {
+				pwm_tilt = target_tilt_position;
+				increment.y = 0;
+			} else if (target_tilt_position < MID_TILT_PWM && error.y < target_tilt_position && error.y < pwm_tilt) {
+				pwm_tilt = target_tilt_position;
+				increment.y = 0;
+			} else if (target_tilt_position < MID_TILT_PWM && error.y > target_tilt_position && error.y > pwm_tilt) {
+				pwm_tilt = target_tilt_position;
+				increment.y = 0;
 			} else {
-				_pwmTilt = error.y;
+				pwm_tilt = error.y;
 			}
 
-			_pwmTilt = constrain(_pwmTilt, MIN_TILT_PWM, MAX_TILT_PWM);
+			pwm_tilt = constrain(pwm_tilt, MIN_TILT_PWM, MAX_TILT_PWM);
 
-			_lastCenterPoint.y = currentCenterPoint.y;
+			last_center.y = currentCenterPoint.y;
 		}
 	}
 }

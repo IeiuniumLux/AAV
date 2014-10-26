@@ -21,3 +21,6 @@ local.properties
 
 /.DS_Store
 /.settings
+proguard-project.txt
+ic_launcher-web.png
+lint.xml

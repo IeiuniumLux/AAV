@@ -326,8 +326,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 				pwm_motor = ioio_.openPwmOutput(27, 100); // screw terminal
 				pwm_front_wheels = ioio_.openPwmOutput(12, 100); // 11 shield
 
-				front_left_IR = ioio_.openAnalogInput(40); // A/D 1 shield
-				side_left_IR = ioio_.openAnalogInput(41); // A/D 2 shield
+				front_left_IR = ioio_.openAnalogInput(40); // A/D 0 shield
+				side_left_IR = ioio_.openAnalogInput(41); // A/D 1 shield
 				front_right_IR = ioio_.openAnalogInput(43); // A/D 3 shield
 				side_right_IR = ioio_.openAnalogInput(42); // A/D 4 shield
 

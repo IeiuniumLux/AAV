@@ -230,25 +230,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			// how 'white' the color is, and Value determines how 'dark' the color is.
 			Imgproc.cvtColor(_rgbaImage, _hsvMat, Imgproc.COLOR_RGB2HSV_FULL);
 
-			// int ch[] = {0, 0};
-			// MatOfInt fromTo = new MatOfInt(ch);
-			// Mat hue = new Mat(_rgbaImage.size(), CvType.CV_8U);
-			// List<Mat> hsvlist = new ArrayList<Mat>();
-			// List<Mat> huelist = new ArrayList<Mat>();
-			// hsvlist.add(0, _hsvMat);
-			// huelist.add(0, hue);
-			// Core.mixChannels(hsvlist, huelist, fromTo);
-			// hue = huelist.get(0);
-			// Mat dst = new Mat();
-			// Imgproc.threshold(hue, dst, 0, 255, Imgproc.THRESH_OTSU + Imgproc.THRESH_BINARY);
-			// Log.e("dst", String.valueOf(dst.total()));
-			//
-			// List<Mat> chan = new ArrayList<Mat>();
-			// Core.split( _hsvMat, chan);
-			// Mat H = _hsvMat.row(0);
-			// Mat binary = new Mat();
-			// Imgproc.threshold(H, binary, 1 /*ignored for otsu*/, 255, Imgproc.THRESH_OTSU);
-
 			Core.inRange(_hsvMat, _lowerThreshold, _upperThreshold, _processedMat);
 
 			// Imgproc.dilate(_processedMat, _dilatedMat, new Mat());
@@ -267,35 +248,9 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			if (!points.empty() && _contourArea > MIN_CONTOUR_AREA) {
 				Imgproc.minEnclosingCircle(points, _centerPoint, null);
 				// Core.circle(_rgbaImage, _centerPoint, 3, new Scalar(255, 0, 0), Core.FILLED);
-				Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
+				// Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
 			}
 			contours.clear();
-
-			// double area = 1;
-			// Mat circles = new Mat();
-			// Imgproc.GaussianBlur(_processedMat, _processedMat, new Size(9, 9), 2, 2);
-			// Imgproc.HoughCircles(_processedMat, circles, Imgproc.CV_HOUGH_GRADIENT, 2, _processedMat.rows() / 4, 100, 50, 10, 100);
-			//
-			// // Draw the circles detected
-			// int rows = circles.rows();
-			// int elemSize = (int) circles.elemSize(); // Returns 12 (3 * 4bytes in a float)
-			// float[] circleData = new float[rows * elemSize / 4];
-			//
-			// if (circleData.length > 0) {
-			// circles.get(0, 0, circleData); // Points to the first element and reads the whole thing into circleData
-			// int radius = 0; for (int i = 0; i < circleData.length; i = i + 3) {
-			// _centerPoint.x = circleData[i];
-			// _centerPoint.y = circleData[i + 1];
-			// radius = (int) Math.round(circleData[2]);
-			// area = Math.PI * (radius * radius);
-			// if (area > _contourArea) {
-			// _contourArea = area;
-			// }
-			// }
-			// if (_contourArea > MIN_CONTOUR_AREA)
-			// Core.circle(_rgbaImage, _centerPoint, radius, new Scalar(255, 0, 0), 3);
-			// }
-
 		}
 		return _rgbaImage;
 	}
@@ -306,15 +261,15 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	 */
 	class Looper extends BaseIOIOLooper {
 
-		private PwmOutput pwm_pan;
-		private PwmOutput pwm_tilt;
-		private PwmOutput pwm_motor;
-		private PwmOutput pwm_front_wheels;
+		private PwmOutput _pwmPan;
+		private PwmOutput _pwmTilt;
+		private PwmOutput _pwmMotor;
+		private PwmOutput _pwmFrontWheels;
 
-		private double[] pwm_values = new double[4];
+		private double[] _pwmValues = new double[4];
 
 		// IRs
-		private AnalogInput front_left_IR, front_right_IR, side_right_IR, side_left_IR;
+		private AnalogInput _frontLeftIR, _frontRightIR, _frontCenterIR;
 
 		boolean is_backing = false;
 
@@ -333,22 +288,21 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		protected void setup() throws ConnectionLostException, InterruptedException {
 
 			try {
-				pwm_values = _mainController.getPWMValues();
+				_pwmValues = _mainController.getPWMValues();
 
-				pwm_pan = ioio_.openPwmOutput(Arduino.PIN_9, 100); // 9 shield
-				pwm_tilt = ioio_.openPwmOutput(Arduino.PIN_5, 100); // 5 shield
-				pwm_motor = ioio_.openPwmOutput(27, 100); // screw terminal
-				pwm_front_wheels = ioio_.openPwmOutput(Arduino.PIN_11, 100);
+				_pwmPan = ioio_.openPwmOutput(Arduino.PIN_9, 100); // 9 shield
+				_pwmTilt = ioio_.openPwmOutput(Arduino.PIN_5, 100); // 5 shield
+				_pwmMotor = ioio_.openPwmOutput(27, 100); // screw terminal
+				_pwmFrontWheels = ioio_.openPwmOutput(Arduino.PIN_11, 100);
 
-				front_left_IR = ioio_.openAnalogInput(Arduino.PIN_AD0);
-				side_left_IR = ioio_.openAnalogInput(Arduino.PIN_AD1);
-				front_right_IR = ioio_.openAnalogInput(Arduino.PIN_AD2);
-				side_right_IR = ioio_.openAnalogInput(Arduino.PIN_AD3);
+				_frontLeftIR = ioio_.openAnalogInput(Arduino.PIN_AD0);
+				_frontRightIR = ioio_.openAnalogInput(Arduino.PIN_AD2);
+				_frontCenterIR = ioio_.openAnalogInput(Arduino.PIN_AD3);
 
-				pwm_pan.setPulseWidth((int) pwm_values[0]);
-				pwm_tilt.setPulseWidth((int) pwm_values[1]);
-				pwm_motor.setPulseWidth((int) pwm_values[2]);
-				pwm_front_wheels.setPulseWidth((int) pwm_values[3]);
+				_pwmPan.setPulseWidth((int) _pwmValues[0]);
+				_pwmTilt.setPulseWidth((int) _pwmValues[1]);
+				_pwmMotor.setPulseWidth((int) _pwmValues[2]);
+				_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
 			} catch (ConnectionLostException e) {
 				Log.e(_TAG, e.getMessage());
 				throw e;
@@ -372,9 +326,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 					if (_contourArea > MIN_CONTOUR_AREA) {
 
 						_mainController.updatePanTiltPWM(_screenCenterCoordinates, _centerPoint);
-						_mainController.ir_sensors.updateIRSensorsVoltage(front_left_IR.getVoltage(), front_right_IR.getVoltage(), side_left_IR.getVoltage(), side_right_IR.getVoltage());
-
-						// if (!_mainController.irSensors.isBacking(front_left_IR.getVoltage(), front_right_IR.getVoltage(), side_left_IR.getVoltage(), side_right_IR.getVoltage(), _contourArea)) {
+						_mainController._irSensors.updateIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _frontCenterIR.getVoltage());
 
 						if (pwm_counter > 8) {
 							_mainController.updateMotorPWM(_contourArea);
@@ -385,19 +337,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 							// if (_mainController.irSensors.checkIRSensors())
 							// pwm_counter = 10;
 						}
-						// }
-
-						// _mainController.irSensors.setIRSensorsVoltage(front_left_IR.getVoltage(), front_right_IR.getVoltage(), side_left_IR.getVoltage(), side_right_IR.getVoltage());
-
-						// if (_mainController.irSensors.isBacking()) {
-						// _mainController.calculatePanTiltPWM(_screenCenterCoordinates, _centerPoint);
-						// } else {
-						// // MUST BE IN THIS ORDER
-						// _mainController.calculatePanTiltPWM(_screenCenterCoordinates, _centerPoint);
-						// // _mainController.calculateWheelsPWM();
-						// _mainController.calculateMotorPWM(_contourArea);
-						// _mainController.irSensors.checkIRSensors();
-						// }
 
 						_countOutOfFrame = 0;
 					} else {
@@ -408,12 +347,12 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 						}
 					}
 
-					pwm_values = _mainController.getPWMValues();
+					_pwmValues = _mainController.getPWMValues();
 
-					pwm_pan.setPulseWidth((int) pwm_values[0]);
-					pwm_tilt.setPulseWidth((int) pwm_values[1]);
-					pwm_front_wheels.setPulseWidth((int) pwm_values[3]);
-					pwm_motor.setPulseWidth((int) pwm_values[2]);
+					_pwmPan.setPulseWidth((int) _pwmValues[0]);
+					_pwmTilt.setPulseWidth((int) _pwmValues[1]);
+					_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
+					_pwmMotor.setPulseWidth((int) _pwmValues[2]);
 				}
 				Thread.sleep(8);
 
@@ -424,10 +363,10 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 		@Override
 		public void disconnected() {
-			pwm_pan.close();
-			pwm_tilt.close();
-			pwm_motor.close();
-			pwm_front_wheels.close();
+			_pwmPan.close();
+			_pwmTilt.close();
+			_pwmMotor.close();
+			_pwmFrontWheels.close();
 		}
 	}
 

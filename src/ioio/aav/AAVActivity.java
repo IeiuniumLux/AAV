@@ -194,12 +194,16 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
+		getWindow().getDecorView().setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+						| View.SYSTEM_UI_FLAG_FULLSCREEN);
 		return _gestureDetector.onTouchEvent(event);
 	}
 
 	private void hideNavigationBar() {
-		getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
+		getWindow().getDecorView().setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+						| View.SYSTEM_UI_FLAG_FULLSCREEN);
 	}
 
 	@Override
@@ -293,7 +297,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 				_pwmPan = ioio_.openPwmOutput(Arduino.PIN_9, 100); // 9 shield
 				_pwmTilt = ioio_.openPwmOutput(Arduino.PIN_5, 100); // 5 shield
 				_pwmMotor = ioio_.openPwmOutput(27, 100); // screw terminal
-				_pwmFrontWheels = ioio_.openPwmOutput(Arduino.PIN_11, 100);
+				_pwmFrontWheels = ioio_.openPwmOutput(Arduino.PIN_10, 100);
 
 				_frontLeftIR = ioio_.openAnalogInput(Arduino.PIN_AD0);
 				_frontRightIR = ioio_.openAnalogInput(Arduino.PIN_AD2);

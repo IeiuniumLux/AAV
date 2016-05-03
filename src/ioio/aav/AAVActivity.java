@@ -78,6 +78,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	GestureDetector _gestureDetector;
 	static int _trackingColor = 0;
 
+	// See Static Initialization of OpenCV (http://tinyurl.com/zof437m)
+	//
 	static {
 		if (!OpenCVLoader.initDebug()) {
 			Log.d("ERROR", "Unable to load OpenCV");
@@ -171,7 +173,9 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	public void onResume() {
 		super.onResume();
 
-		// OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_10, this, mLoaderCallback);
+		// if (!OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this, mLoaderCallback)) {
+		// Log.e(_TAG, "Cannot connect to OpenCV Manager");
+		// }
 		mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
 		hideNavigationBar();
 	}
@@ -252,7 +256,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			if (!points.empty() && _contourArea > MIN_CONTOUR_AREA) {
 				Imgproc.minEnclosingCircle(points, _centerPoint, null);
 				// Core.circle(_rgbaImage, _centerPoint, 3, new Scalar(255, 0, 0), Core.FILLED);
-				// Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
+				Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
+				// Imgproc.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
 			}
 			contours.clear();
 		}

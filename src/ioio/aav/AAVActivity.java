@@ -78,6 +78,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	GestureDetector _gestureDetector;
 	static int _trackingColor = 0;
 
+	private boolean _showContourEnable = false;
+
 	// See Static Initialization of OpenCV (http://tinyurl.com/zof437m)
 	//
 	static {
@@ -128,6 +130,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_lowerThreshold = new Scalar(1, 50, 150); // Orange
 			_upperThreshold = new Scalar(60, 255, 255);
 		}
+		_showContourEnable = _sharedPreferences.getBoolean("contour", false);
 
 		_opencvCameraView = (JavaCameraView) findViewById(R.id.aav_activity_surface_view);
 		_opencvCameraView.setCvCameraViewListener(this);
@@ -147,6 +150,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
+		_showContourEnable = _sharedPreferences.getBoolean("contour", false);
 		_trackingColor = Integer.parseInt(_sharedPreferences.getString(getString(R.string.color_key), "0"));
 
 		switch (_trackingColor) {
@@ -231,6 +235,10 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 			_rgbaImage = inputFrame.rgba();
 
+			if (android.os.Build.MODEL.equalsIgnoreCase("Nexus 5X")) {
+				Core.flip(_rgbaImage, _rgbaImage, -1);
+			}
+
 			double current_contour;
 
 			// In contrast to the C++ interface, Android API captures images in the RGBA format.
@@ -256,8 +264,8 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			if (!points.empty() && _contourArea > MIN_CONTOUR_AREA) {
 				Imgproc.minEnclosingCircle(points, _centerPoint, null);
 				// Core.circle(_rgbaImage, _centerPoint, 3, new Scalar(255, 0, 0), Core.FILLED);
-				Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
-				// Imgproc.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
+				if (_showContourEnable)
+					Core.circle(_rgbaImage, _centerPoint, (int) Math.round(Math.sqrt(_contourArea / Math.PI)), new Scalar(255, 0, 0), 3, 8, 0);// Core.FILLED);
 			}
 			contours.clear();
 		}

@@ -130,11 +130,10 @@ public class ActuatorController {
 			} else if (_frontRightIRVoltage > 1.1) {
 				_pwmFrontWheels = LEFT_FULL_TURN_WHEELS_PWM;
 				return false;
+			} else if (_frontCenterIRVoltage > 1.1) {
+				_lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
+				return false;
 			}
-			// else if (_frontCenterIRVoltage > 1.1) {
-			// _lastMotorPWM = _pwmMotor = MOTOR_NEUTRAL_PWM;
-			// return false;
-			// }
 			return true;
 		}
 

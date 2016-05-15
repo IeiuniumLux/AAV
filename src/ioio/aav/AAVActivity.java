@@ -223,10 +223,10 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 	@Override
 	public void onCameraViewStopped() {
+		_mainController.reset();
 		_rgbaImage.release();
 		_centerPoint.x = -1;
 		_centerPoint.y = -1;
-		_mainController.reset();
 	}
 
 	@Override
@@ -286,7 +286,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 		private double[] _pwmValues = new double[4];
 
 		// IRs
-		private AnalogInput _frontLeftIR, _frontRightIR, _frontCenterIR;
+		private AnalogInput _sideLeftIR, _sideRightIR, _frontRightIR, _frontLeftIR;
 
 		boolean is_backing = false;
 
@@ -307,19 +307,21 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			try {
 				_pwmValues = _mainController.getPWMValues();
 
-				_pwmPan = ioio_.openPwmOutput(Arduino.PIN_9, 100); // 9 shield
-				_pwmTilt = ioio_.openPwmOutput(Arduino.PIN_5, 100); // 5 shield
-				_pwmMotor = ioio_.openPwmOutput(27, 100); // screw terminal
-				_pwmFrontWheels = ioio_.openPwmOutput(Arduino.PIN_10, 100);
+				_pwmPan = ioio_.openPwmOutput(14, 100);
+				_pwmTilt = ioio_.openPwmOutput(13, 100);
+				_pwmMotor = ioio_.openPwmOutput(12, 100);
+				_pwmFrontWheels = ioio_.openPwmOutput(11, 100);
 
-				_frontLeftIR = ioio_.openAnalogInput(Arduino.PIN_AD0);
-				_frontRightIR = ioio_.openAnalogInput(Arduino.PIN_AD2);
-				_frontCenterIR = ioio_.openAnalogInput(Arduino.PIN_AD3);
+				_sideLeftIR = ioio_.openAnalogInput(37);
+				_frontLeftIR = ioio_.openAnalogInput(38);
+				_sideRightIR = ioio_.openAnalogInput(33);
+				_frontRightIR = ioio_.openAnalogInput(34);
 
 				_pwmPan.setPulseWidth((int) _pwmValues[0]);
 				_pwmTilt.setPulseWidth((int) _pwmValues[1]);
 				_pwmMotor.setPulseWidth((int) _pwmValues[2]);
 				_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
+
 			} catch (ConnectionLostException e) {
 				Log.e(_TAG, e.getMessage());
 				throw e;
@@ -340,27 +342,20 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			try {
 				synchronized (_mainController) {
 
+					// _mainController._irSensors.updateIRSensorsVoltage(_sideLeftIR.getVoltage(), _sideRightIR.getVoltage(), _frontRightIR.getVoltage(), _frontLeftIR.getVoltage());
+					// _mainController._irSensors.checkIRSensors();
+
 					if (_contourArea > MIN_CONTOUR_AREA) {
-
 						_mainController.updatePanTiltPWM(_screenCenterCoordinates, _centerPoint);
-						_mainController._irSensors.updateIRSensorsVoltage(_frontLeftIR.getVoltage(), _frontRightIR.getVoltage(), _frontCenterIR.getVoltage());
-
-						if (pwm_counter > 8) {
-							_mainController.updateMotorPWM(_contourArea);
-							pwm_counter = 0;
-						} else {
-							pwm_counter++;
-
-							// if (_mainController.irSensors.checkIRSensors())
-							// pwm_counter = 10;
-						}
-
+						_mainController._irSensors.updateIRSensorsVoltage(_sideLeftIR.getVoltage(), _sideRightIR.getVoltage(), _frontRightIR.getVoltage(), _frontLeftIR.getVoltage());
+						_mainController.updateMotorPWM(_contourArea);
 						_countOutOfFrame = 0;
 					} else {
 						_countOutOfFrame++;
-						if (_countOutOfFrame > 20) {
+						if (_countOutOfFrame > 5) {
 							_mainController.reset();
-							_countOutOfFrame = pwm_counter = 0;
+							_countOutOfFrame = 0;
+							// pwm_counter = 0;
 						}
 					}
 
@@ -380,10 +375,16 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 
 		@Override
 		public void disconnected() {
+			_sideLeftIR.close();
+			_frontLeftIR.close();
+			_sideRightIR.close();
+			_frontRightIR.close();
+
 			_pwmPan.close();
 			_pwmTilt.close();
 			_pwmMotor.close();
 			_pwmFrontWheels.close();
+
 		}
 	}
 

@@ -384,7 +384,6 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			_pwmTilt.close();
 			_pwmMotor.close();
 			_pwmFrontWheels.close();
-
 		}
 	}
 

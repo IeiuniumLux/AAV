@@ -53,6 +53,7 @@ import android.view.View;
 import android.view.WindowManager;
 
 public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
+
 	private static final String _TAG = "AAVActivity";
 
 	static final double MIN_CONTOUR_AREA = 100;
@@ -342,21 +343,17 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 			try {
 				synchronized (_mainController) {
 
-					// _mainController._irSensors.updateIRSensorsVoltage(_sideLeftIR.getVoltage(), _sideRightIR.getVoltage(), _frontRightIR.getVoltage(), _frontLeftIR.getVoltage());
-					// _mainController._irSensors.checkIRSensors();
-
 					if (_contourArea > MIN_CONTOUR_AREA) {
 						_mainController.updatePanTiltPWM(_screenCenterCoordinates, _centerPoint);
 						_mainController._irSensors.updateIRSensorsVoltage(_sideLeftIR.getVoltage(), _sideRightIR.getVoltage(), _frontRightIR.getVoltage(), _frontLeftIR.getVoltage());
 						_mainController.updateMotorPWM(_contourArea);
 						_countOutOfFrame = 0;
 					} else {
-						_countOutOfFrame++;
 						if (_countOutOfFrame > 5) {
 							_mainController.reset();
 							_countOutOfFrame = 0;
-							// pwm_counter = 0;
 						}
+						_countOutOfFrame++;
 					}
 
 					_pwmValues = _mainController.getPWMValues();
@@ -366,7 +363,7 @@ public class AAVActivity extends IOIOActivity implements CvCameraViewListener2 {
 					_pwmFrontWheels.setPulseWidth((int) _pwmValues[3]);
 					_pwmMotor.setPulseWidth((int) _pwmValues[2]);
 				}
-				Thread.sleep(8);
+				Thread.sleep(20);
 
 			} catch (InterruptedException e) {
 				ioio_.disconnect();

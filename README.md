@@ -13,3 +13,11 @@ This app is used to control an Autonomous Android Vehicle (AAV) that can recogni
 alt="IMAGE ALT TEXT HERE" width="240" height="180" border="10" /></a>
 
 ###### Acknowledgements: None of the work presented in this project would have become a reality without the support and feedback from Ytai Ben-Tsvi creator of the IOIO board and Professor Nicolas Oros from the University of California Irvine; and last but not least, Rags Williamson for recording the video.
+
+License (GPLv3)
+------
+Copter (aka APM:Copter), Plane (aka Plane), Rover (aka Rover) and the Mission Planner are free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+For more specific details see http://www.gnu.org/licenses, the Quick Guide to GPLv3.

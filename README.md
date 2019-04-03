@@ -9,8 +9,7 @@ This app is used to control an Autonomous Android Vehicle (AAV) that can recogni
 + IOIO-OTG
 + IR sensors
 
-<a href="http://www.youtube.com/watch?feature=player_embedded&v=ihmyHNJodvQ" target="_blank"><img src="http://img.youtube.com/vi/ihmyHNJodvQ/0.jpg" 
-alt="" width="580" height="415" border="10" /></a>
+[![Autonomous Android Vehicle (AAV)](http://img.youtube.com/vi/ihmyHNJodvQ/0.jpg)](https://www.youtube.com/watch?v=ihmyHNJodvQ "Autonomous Android Vehicle (AAV)")
 
 ###### Acknowledgements: None of the work presented in this project would have become a reality without the support and feedback from Ytai Ben-Tsvi creator of the IOIO board and Nicolas Oros from the University of California Irvine; and last but not least, Rags Williamson for recording the video.
 
